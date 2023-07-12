@@ -15,6 +15,12 @@ import {ICollectModule} from '../interfaces/ICollectModule.sol';
 import {Clones} from '@openzeppelin/contracts/proxy/Clones.sol';
 import {Strings} from '@openzeppelin/contracts/utils/Strings.sol';
 
+import "hardhat/console.sol";
+
+interface IOracleVerifier {
+    function verify(bytes calldata data) external returns (bytes memory);
+}
+
 /**
  * @title InteractionLogic
  * @author Lens Protocol
@@ -139,6 +145,96 @@ library InteractionLogic {
         return tokenId;
     }
 
+    // structs to avoid "stake too deep" error
+    struct DaCollectArgs {
+        address collector;
+        uint256 profileId;
+        uint256 pubId;
+        bytes oracleAttestation;
+        address collectNFTImpl;
+        address oracleImpl;
+    }
+    struct DaCollectLocals {
+        bytes attestedData;
+        bytes moduleOracleData;
+        uint256 rootProfileId;
+        uint256 rootPubId;
+        address rootCollectModule;
+        string rootContentURI;
+    }
+
+    function daCollect(
+        DaCollectArgs calldata args,
+        bytes calldata collectModuleData,
+        mapping(uint256 => mapping(uint256 => DataTypes.PublicationStruct))
+            storage _daPubByIdByProfile,
+        mapping(uint256 => DataTypes.ProfileStruct) storage _profileById
+    ) external returns (uint256) {
+        DaCollectLocals memory vars;
+        vars.attestedData = IOracleVerifier(args.oracleImpl).verify(args.oracleAttestation);
+        {
+            bytes memory lensOracleData;
+            (lensOracleData, vars.moduleOracleData) = abi.decode(vars.attestedData, (bytes, bytes));
+            bytes4 req;
+            uint256 attestedProfileId;
+            uint256 attestedPubId;
+            (
+                req,
+                attestedProfileId,
+                attestedPubId,
+                vars.rootProfileId,
+                vars.rootPubId,
+                vars.rootCollectModule,
+                vars.rootContentURI
+            ) = abi.decode(lensOracleData, (bytes4, uint256, uint256, uint256, uint256, address, string));
+
+            require(req == bytes4(0x00000000), "AT: bad req");
+            require(attestedProfileId == args.profileId, "AT: bad profile id");
+            // console.log("pubId", attestedPubId, args.pubId);
+            require(attestedPubId == args.pubId, "AT: bad pub id");
+        }
+
+        uint256 tokenId;
+        // Avoids stack too deep
+        {
+            address collectNFT = _daPubByIdByProfile[vars.rootProfileId][vars.rootPubId].collectNFT;
+            if (collectNFT == address(0)) {
+                collectNFT = _deployCollectNFT(
+                    vars.rootProfileId,
+                    vars.rootPubId,
+                    _profileById[vars.rootProfileId].handle,
+                    args.collectNFTImpl
+                );
+                _daPubByIdByProfile[vars.rootProfileId][vars.rootPubId].collectNFT = collectNFT;
+                // Must set the fields because it will be checked by Helper.getPointedIfMirror,
+                // which is used by LensHub.getContentURI()
+                _daPubByIdByProfile[vars.rootProfileId][vars.rootPubId].collectModule = vars.rootCollectModule;
+                _daPubByIdByProfile[vars.rootProfileId][vars.rootPubId].contentURI = vars.rootContentURI;
+            }
+            tokenId = ICollectNFT(collectNFT).mint(args.collector);
+        }
+        // TODO: initialize the module if it's not yet, since there's no initialization like
+        // on-chain publication
+        ICollectModule(vars.rootCollectModule).processCollect(
+            args.profileId,
+            args.collector,
+            vars.rootProfileId,
+            vars.rootPubId,
+            // vars.moduleOracleData,
+            collectModuleData
+        );
+        _emitCollectedEvent(
+            args.collector,
+            args.profileId,
+            args.pubId,
+            vars.rootProfileId,
+            vars.rootPubId,
+            collectModuleData
+        );
+
+        return tokenId;
+    }
+
     /**
      * @notice Deploys the given profile's Follow NFT contract.
      *
@@ -177,13 +273,31 @@ library InteractionLogic {
 
         bytes4 firstBytes = bytes4(bytes(handle));
 
+        (uint256 pubIdRef, uint256 daId) = Helpers.decomposePubId(pubId);
         string memory collectNFTName = string(
-            abi.encodePacked(handle, Constants.COLLECT_NFT_NAME_INFIX, pubId.toString())
+            abi.encodePacked(handle, Constants.COLLECT_NFT_NAME_INFIX, pubIdRef.toString())
         );
         string memory collectNFTSymbol = string(
-            abi.encodePacked(firstBytes, Constants.COLLECT_NFT_SYMBOL_INFIX, pubId.toString())
+            abi.encodePacked(firstBytes, Constants.COLLECT_NFT_SYMBOL_INFIX, pubIdRef.toString())
         );
-
+        if (daId > 0) {
+            // Add suffix for DA collect
+            string memory daId = daId.toHexString();
+            collectNFTName = string(
+                abi.encodePacked(
+                    collectNFTName,
+                    Constants.COLLECT_NFT_DA_INFIX,
+                    daId
+                )
+            );
+            collectNFTSymbol = string(
+                abi.encodePacked(
+                    collectNFTSymbol,
+                    Constants.COLLECT_NFT_DA_INFIX,
+                    daId
+                )
+            );
+        }
         ICollectNFT(collectNFT).initialize(profileId, pubId, collectNFTName, collectNFTSymbol);
         emit Events.CollectNFTDeployed(profileId, pubId, collectNFT, block.timestamp);
 

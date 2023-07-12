@@ -26,8 +26,9 @@ import {
   ProfileFollowModule__factory,
   RevertFollowModule__factory,
   ProfileCreationProxy__factory,
+  OracleVerifier__factory,
 } from '../typechain-types';
-import { deployWithVerify, waitForTx } from './helpers/utils';
+import { deployWithVerify, ProtocolState, waitForTx } from './helpers/utils';
 
 const TREASURY_FEE_BPS = 50;
 const LENS_HUB_NFT_NAME = 'Lens Protocol Profiles';
@@ -59,6 +60,11 @@ task('full-deploy-verify', 'deploys the entire Lens Protocol with explorer verif
     const treasuryAddress = accounts[2].address;
     const proxyAdminAddress = deployer.address;
     const profileCreatorAddress = deployer.address;
+    console.log('Addresses', {
+      deployer: deployer.address,
+      governance: governance.address,
+      treasury: treasuryAddress,
+    })
 
     // Nonce management in case of deployment issues
     let deployerNonce = await ethers.provider.getTransactionCount(deployer.address);
@@ -347,6 +353,25 @@ task('full-deploy-verify', 'deploys the entire Lens Protocol with explorer verif
       })
     );
 
+    // Deploy Oracle
+    console.log('\n\t-- Deploying Lens API Oracle --');
+    const oracleVerifier = await deployWithVerify(
+      new OracleVerifier__factory(deployer).deploy('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', {
+        nonce: deployerNonce++,
+      }),
+      ['0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266'],
+      'contracts/core/Oracle.sol:OracleVerifier'
+    );
+    await waitForTx(
+      lensHub.setOracleImpl(oracleVerifier.address, { nonce: governanceNonce++ })
+    );
+
+    // Unpause
+    console.log('\n\t-- Unpause the Protocol --');
+
+    await waitForTx(lensHub.setState(ProtocolState.Unpaused, { nonce: governanceNonce++ }));
+    console.log('Unpaused', await lensHub.getState());
+
     // Save and log the addresses
     const addrs = {
       'lensHub proxy': lensHub.address,
@@ -372,6 +397,7 @@ task('full-deploy-verify', 'deploys the entire Lens Protocol with explorer verif
       'follower only reference module': followerOnlyReferenceModule.address,
       'UI data provider': uiDataProvider.address,
       'Profile creation proxy': profileCreationProxy.address,
+      'oracle verifier': oracleVerifier.address,
     };
     const json = JSON.stringify(addrs, null, 2);
     console.log(json);

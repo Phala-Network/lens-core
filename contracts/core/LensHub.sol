@@ -34,6 +34,7 @@ contract LensHub is LensNFTBase, VersionedInitializable, LensMultiState, LensHub
 
     address internal immutable FOLLOW_NFT_IMPL;
     address internal immutable COLLECT_NFT_IMPL;
+    address internal oracleImpl;
 
     /**
      * @dev This modifier reverts if the caller is not the configured governance address.
@@ -662,6 +663,33 @@ contract LensHub is LensNFTBase, VersionedInitializable, LensMultiState, LensHub
                 vars.pubId,
                 vars.data,
                 COLLECT_NFT_IMPL,
+                _pubByIdByProfile,
+                _profileById
+            );
+    }
+
+    function setOracleImpl(address _oracleImpl) onlyGov public {
+        oracleImpl = _oracleImpl;
+    }
+
+    function daCollect(
+        uint256 profileId,
+        uint256 pubId,
+        bytes calldata oracleAttestation,
+        bytes calldata data
+    ) external /*override*/ whenNotPaused returns (uint256) {
+        require(oracleImpl != address(0), "ONI");
+        return
+            InteractionLogic.daCollect(
+                InteractionLogic.DaCollectArgs(
+                    msg.sender,
+                    profileId,
+                    pubId,
+                    oracleAttestation,
+                    COLLECT_NFT_IMPL,
+                    oracleImpl
+                ),
+                data,
                 _pubByIdByProfile,
                 _profileById
             );

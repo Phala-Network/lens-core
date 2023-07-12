@@ -11,8 +11,10 @@ services:
     tty: true
     volumes:
       - ./:/src:rw
+      - ./tmp/home:$HOME:rw
       - $HOME/.tenderly/config.yaml:/root/.tenderly/config.yaml:ro
-    #environment:
+    environment:
+      - HOME=$HOME
       #- MNEMONIC=
       #- RPC_URL=
       #- BLOCK_EXPLORER_KEY=

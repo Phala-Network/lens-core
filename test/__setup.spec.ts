@@ -52,6 +52,8 @@ import {
   CollectNFT,
   RevertFollowModule,
   RevertFollowModule__factory,
+  OracleVerifier__factory,
+  OracleVerifier,
 } from '../typechain-types';
 import { LensHubLibraryAddresses } from '../typechain-types/factories/LensHub__factory';
 import { FAKE_PRIVATEKEY, ZERO_ADDRESS } from './helpers/constants';
@@ -106,6 +108,7 @@ export let helper: Helper;
 export let lensPeriphery: LensPeriphery;
 export let followNFTImpl: FollowNFT;
 export let collectNFTImpl: CollectNFT;
+export let oracleImpl: OracleVerifier;
 
 /* Modules */
 
@@ -245,6 +248,11 @@ before(async function () {
 
   mockFollowModule = await new MockFollowModule__factory(deployer).deploy();
   mockReferenceModule = await new MockReferenceModule__factory(deployer).deploy();
+
+  // Deploy oracle implementation
+  oracleImpl = await new OracleVerifier__factory(deployer)
+    .deploy('0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266');
+  await lensHub.connect(governance).setOracleImpl(oracleImpl.address);
 
   await expect(lensHub.connect(governance).setState(ProtocolState.Unpaused)).to.not.be.reverted;
   await expect(

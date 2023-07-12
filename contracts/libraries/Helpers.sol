@@ -54,4 +54,10 @@ library Helpers {
             return (pointedTokenId, pointedPubId, pointedCollectModule);
         }
     }
+
+    uint256 constant MASK = (1 << 128) - 1;
+    // returns (pubId, daId)
+    function decomposePubId(uint256 pubId) internal pure returns (uint256, uint256) {
+        return (pubId & MASK, pubId >> 128);
+    }
 }
