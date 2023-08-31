@@ -11,7 +11,7 @@ import {Math} from '@openzeppelin/contracts/utils/math/Math.sol';
 import {ILensHub} from 'contracts/interfaces/ILensHub.sol';
 import {LensBaseERC721} from 'contracts/base/LensBaseERC721.sol';
 import {ActionRestricted} from 'contracts/modules/ActionRestricted.sol';
-import "forge-std/console.sol";
+// import "forge-std/console.sol";
 interface IPublicationProvider {
     function getContentURI(uint256 profileId, uint256 pubId) external view returns (string memory);
 }

@@ -28,11 +28,13 @@ contract MomokaActHub is HubRestricted {
         // Expand from: ValidationLib.validateAddressIsProfileOwnerOrDelegatedExecutor(expectedOwnerOrDelegatedExecutor, profileId);
         ILensHub hub = ILensHub(HUB);
         if (expectedOwnerOrDelegatedExecutor != hub.ownerOf(profileId)) {
-            // Expand from: validateAddressIsDelegatedExecutor()
-            // Expand from: isExecutorApproved()
-            if (!hub.isDelegatedExecutorApproved(profileId, expectedOwnerOrDelegatedExecutor)) {
-                revert Errors.ExecutorInvalid();
-            }
+            // TODO: Shortcuted because it's not implemente in Lens v1
+            revert Errors.ExecutorInvalid();
+            // // Expand from: validateAddressIsDelegatedExecutor()
+            // // Expand from: isExecutorApproved()
+            // if (!hub.isDelegatedExecutorApproved(profileId, expectedOwnerOrDelegatedExecutor)) {
+            //     revert Errors.ExecutorInvalid();
+            // }
         }
         _;
     }
@@ -158,11 +160,13 @@ contract MomokaActHub is HubRestricted {
     }
 
     function _validateNotBlocked(uint256 profile, uint256 byProfile) internal view {
-        // Expand from: StorageLib.blockedStatus
-        ILensHub hub = ILensHub(HUB);
-        if (hub.isBlocked(profile, byProfile)) {
-            revert Errors.Blocked();
-        }
+        // TODO: Shortcut because it's not implemented in Lens v1
+        return;
+        // // Expand from: StorageLib.blockedStatus
+        // ILensHub hub = ILensHub(HUB);
+        // if (hub.isBlocked(profile, byProfile)) {
+        //     revert Errors.Blocked();
+        // }
     }
 
     function _maybInitializeActionModule(
