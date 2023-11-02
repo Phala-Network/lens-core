@@ -412,4 +412,18 @@ library Types {
         address legacyProfileFollowModule;
         address newFeeFollowModule;
     }
+
+    // LensAPI Oracle response for Momoka actions
+    struct ActOracleResponse {
+        // Oracle response
+        uint256 profileId;
+        uint256 pubId;
+        Types.PublicationMemory publication;
+        Types.PublicationType[] referrerPubTypes;
+        address[] actionModules;
+        bytes[] actionModulesInitDatas;
+        // Request parameters
+        uint256[] referrerProfileIds;
+        uint256[] referrerPubIds;
+    }
 }
