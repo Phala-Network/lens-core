@@ -147,14 +147,12 @@ contract MomokaCollectNFT is LensBaseERC721, ERC2981CollectionRoyalties, ActionR
     // Modified from OpenZeppelin String library
 
     bytes16 private constant _SYMBOLS = "0123456789abcdef";
-    // function toHexString(uint256 value) internal pure returns (string memory) {
-    function toHexString(uint256 value) internal view returns (string memory) {
+    function toHexString(uint256 value) internal pure returns (string memory) {
         unchecked {
             return toHexString(value, Math.log256(value) + 1);
         }
     }
-    // function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
-    function toHexString(uint256 value, uint256 length) internal view returns (string memory) {
+    function toHexString(uint256 value, uint256 length) internal pure returns (string memory) {
         bytes memory buffer = new bytes(2 * length);
         for (int256 i = 2 * int256(length) - 1; i >= 0; --i) {
             buffer[uint256(i)] = _SYMBOLS[value & 0xf];

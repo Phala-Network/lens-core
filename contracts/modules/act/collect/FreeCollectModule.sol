@@ -2,9 +2,9 @@
 
 pragma solidity ^0.8.15;
 
-import {ICollectModule} from 'contracts/interfaces/ICollectModule.sol';
-import {Types} from 'contracts/libraries/constants/Types.sol';
-import {MockModule} from 'test/mocks/MockModule.sol';
+import {ICollectModule} from 'contracts/modules/interfaces/ICollectModule.sol';
+import {ModuleTypes} from 'contracts/modules/libraries/constants/ModuleTypes.sol';
+import {LensModuleMetadata} from 'contracts/modules/LensModuleMetadata.sol';
 
 /**
  * @title FreeCollectModule
@@ -14,10 +14,16 @@ import {MockModule} from 'test/mocks/MockModule.sol';
  *
  * This module works by allowing all collects.
  */
-contract FreeCollectModule is ICollectModule {
+contract FreeCollectModule is LensModuleMetadata, ICollectModule {
     function testMockCollectModule() public {
         // Prevents being counted in Foundry Coverage
     }
+
+    function supportsInterface(bytes4 interfaceID) public pure override returns (bool) {
+        return interfaceID == type(ICollectModule).interfaceId;
+    }
+
+    constructor(address moduleOwner) LensModuleMetadata(moduleOwner) {}
 
     /**
      * @dev There is nothing needed at initialization.
@@ -36,7 +42,7 @@ contract FreeCollectModule is ICollectModule {
      *  1. Ensuring the collector is a follower, if needed
      */
     function processCollect(
-        Types.ProcessCollectParams calldata processCollectParams
+        ModuleTypes.ProcessCollectParams calldata processCollectParams
     ) external pure override returns (bytes memory) {
         return processCollectParams.data;
     }

@@ -83,7 +83,7 @@ interface IPublicationProvider {
 
 contract OracleVerifier is MetaTxReceiver, IOracleVerifier {
     // Attested publications
-    mapping(uint256 profileId => mapping(uint256 pubId => Types.Publication publication)) verifiedPublications;
+    mapping(uint256 profileId => mapping(uint256 pubId => Types.PublicationMemory publication)) verifiedPublications;
 
     // The oracle owned address for verifying signed data
     address attester;
@@ -115,7 +115,7 @@ contract OracleVerifier is MetaTxReceiver, IOracleVerifier {
     }
 
     function getContentURI(uint256 profileId, uint256 pubId) external view returns (string memory) {
-        Types.Publication storage _publication = verifiedPublications[profileId][pubId];
+        Types.PublicationMemory storage _publication = verifiedPublications[profileId][pubId];
 
         // Just revert in the first two branches, because it's supposed to collect the root post
         // instead of any intermediary referencing posts. So finally, simply return the post

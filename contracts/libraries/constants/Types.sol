@@ -418,7 +418,7 @@ library Types {
         // Oracle response
         uint256 profileId;
         uint256 pubId;
-        Types.Publication publication;
+        Types.PublicationMemory publication;
         Types.PublicationType[] referrerPubTypes;
         address[] actionModules;
         bytes[] actionModulesInitDatas;

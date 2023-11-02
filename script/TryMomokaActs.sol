@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
 import 'forge-std/Script.sol';
@@ -21,10 +22,10 @@ import {Types} from 'contracts/libraries/constants/Types.sol';
 contract DeployMomokaActScript is Script {
     function run() public {
         string memory deployerMnemonic = vm.envString('MNEMONIC');
-        uint256 deployerKey = vm.deriveKey(deployerMnemonic, 0);
-        address deployer = vm.addr(deployerKey);
+        // uint256 deployerKey = vm.deriveKey(deployerMnemonic, 0);
+        // address deployer = vm.addr(deployerKey);
         uint256 userKey = vm.deriveKey(deployerMnemonic, 3);
-        address user = vm.addr(deployerKey);
+        // address user = vm.addr(deployerKey);
         address actHubAddr = vm.envAddress('ACT_HUB_ADDRESS');
         address actModuleAddr = vm.envAddress('ACT_MODULE_ADDRESS');
 

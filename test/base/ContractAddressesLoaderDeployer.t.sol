@@ -15,6 +15,12 @@ import {Governance} from 'contracts/misc/access/Governance.sol';
 import {ProxyAdmin} from 'contracts/misc/access/ProxyAdmin.sol';
 import {ModuleRegistry} from 'contracts/misc/ModuleRegistry.sol';
 
+import {OracleVerifier} from 'contracts/misc/LensOracle.sol';
+import {MomokaActHub} from 'contracts/modules/MomokaActHub.sol';
+import {MomokaCollectNFT} from 'contracts/modules/act/collect/MomokaCollectNFT.sol';
+import {MomokaCollectPublicationAction} from 'contracts/modules/act/collect/MomokaCollectPublicationAction.sol';
+
+
 contract ContractAddressesLoaderDeployer is Test, ForkManagement {
     using stdJson for string;
 
@@ -130,6 +136,68 @@ contract ContractAddressesLoaderDeployer is Test, ForkManagement {
         vm.label(collectNFTImpl, 'CollectNFTImpl');
 
         return (collectNFTImpl, address(collectPublicationAction));
+    }
+
+    function loadOrDeploy_MomokaCollectPublicationAction() internal returns (MomokaCollectPublicationAction, MomokaActHub, OracleVerifier) {
+        MomokaCollectPublicationAction collectPublicationAction;
+        address collectNFTImpl;
+        OracleVerifier oracleImpl;
+        MomokaActHub actHub;
+
+        if (fork && keyExists(json, string(abi.encodePacked('.', forkEnv, '.MomokaCollectNFTImpl')))) {
+            collectNFTImpl = json.readAddress(string(abi.encodePacked('.', forkEnv, '.MomokaCollectNFTImpl')));
+            console.log('Found MomokaCollectNFTImpl deployed at:', address(collectNFTImpl));
+        }
+
+        if (fork && keyExists(json, string(abi.encodePacked('.', forkEnv, '.MomokaCollectPublicationAction')))) {
+            collectPublicationAction = MomokaCollectPublicationAction(
+                json.readAddress(string(abi.encodePacked('.', forkEnv, '.MomokaCollectPublicationAction')))
+            );
+            console.log('Found MomokaCollectPublicationAction deployed at:', address(collectPublicationAction));
+        }
+
+        // Both deployed - need to verify if they are linked
+        if (collectNFTImpl != address(0) && address(collectPublicationAction) != address(0)) {
+            if (MomokaCollectNFT(collectNFTImpl).ACTION_MODULE() == address(collectPublicationAction)) {
+                console.log('MomokaCollectNFTImpl and MomokaCollectPublicationAction already deployed and linked');
+                revert('loading not supported');
+            }
+        }
+
+        uint256 deployerNonce = vm.getNonce(deployer);
+
+        address predictedOracleImpl = computeCreateAddress(deployer, deployerNonce);
+        address predictedActHub = computeCreateAddress(deployer, deployerNonce + 1);
+        address predictedCollectPublicationAction = computeCreateAddress(deployer, deployerNonce + 2);
+        address predictedCollectNFTImpl = computeCreateAddress(deployer, deployerNonce + 3);
+
+        vm.startPrank(deployer);
+        // Lens Oracle Verifier, very important
+        uint256 ATTESTOR_SK = 1;
+        oracleImpl = new OracleVerifier(vm.addr(ATTESTOR_SK));
+        actHub = new MomokaActHub(address(hub), address(oracleImpl));
+        collectPublicationAction = new MomokaCollectPublicationAction(
+            address(actHub),  // action hub!
+            predictedCollectNFTImpl,
+            address(hub)
+        );
+        collectNFTImpl = address(new MomokaCollectNFT(address(hub), address(collectPublicationAction), address(oracleImpl)));
+        vm.stopPrank();
+
+        assertEq(address(oracleImpl), predictedOracleImpl, 'OracleImpl deployed address mismatch');
+        assertEq(address(actHub), predictedActHub, 'ActHub deployed address mismatch');
+        assertEq(
+            address(collectPublicationAction),
+            predictedCollectPublicationAction,
+            'MomokaCollectPublicationAction deployed address mismatch'
+        );
+        assertEq(collectNFTImpl, predictedCollectNFTImpl, 'MomokaCollectNFTImpl deployed address mismatch');
+
+        vm.label(address(collectPublicationAction), 'MomokaCollectPublicationAction');
+        vm.label(collectNFTImpl, 'MomokaCollectNFTImpl');
+        vm.label(address(oracleImpl), "OracleImpl");
+        vm.label(address(actHub), "ActHub");
+        return (collectPublicationAction, actHub, oracleImpl);
     }
 
     // function loadOrDeploy_SeaDropMintPublicationAction() internal returns (address) {}

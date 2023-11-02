@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
 import 'forge-std/Script.sol';
@@ -25,8 +26,6 @@ contract DeployMomokaActScript is Script {
         uint256 userKey = vm.deriveKey(deployerMnemonic, 3);
         address hubProxyAddr = vm.envAddress('HUB_PROXY_ADDRESS');
 
-        address owner = deployer;
-
         // LensHub hub = LensHub(hubProxyAddr);
         // address followNFTAddress = hub.getFollowNFTImpl();
         // address collectNFTAddress = hub.getCollectNFTImpl();
@@ -45,11 +44,11 @@ contract DeployMomokaActScript is Script {
         // address collectActAddress = computeCreateAddress(deployer, deployerNonce + 3);
         address collectNftAddress = computeCreateAddress(deployer, deployerNonce + 3);
 
-        FreeCollectModule freeCollect = new FreeCollectModule();
+        FreeCollectModule freeCollect = new FreeCollectModule(deployer);
         MomokaActHub actHub = new MomokaActHub(hubProxyAddr, address(oracleImpl));
         MomokaCollectPublicationAction collectAct = new MomokaCollectPublicationAction(address(actHub), collectNftAddress, address(0));
         MomokaCollectNFT collectNft = new MomokaCollectNFT(hubProxyAddr, address(collectAct), address(oracleImpl));
-        collectAct.whitelistCollectModule(address(freeCollect), true);
+        collectAct.registerCollectModule(address(freeCollect));
 
         console.log("OracleVerifier", address(oracleImpl));
         console.log("FreeCollectModule", address(freeCollect));

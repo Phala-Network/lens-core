@@ -51,10 +51,9 @@ contract MomokaActHub is HubRestricted {
         oracleImpl = _oracleImpl;
     }
 
-    function getOracleImpl() external returns (address) {
+    function getOracleImpl() external view returns (address) {
         return oracleImpl;
     }
-
 
     function momokaAct(
         Types.PublicationActionParams calldata publicationActionParams,
@@ -152,7 +151,7 @@ contract MomokaActHub is HubRestricted {
                 actionModuleData: publicationActionParams.actionModuleData
             })
         );
-        emit Events.Acted(publicationActionParams, actionModuleReturnData, block.timestamp);
+        emit Events.Acted(publicationActionParams, actionModuleReturnData, transactionExecutor, block.timestamp);
 
         return actionModuleReturnData;
     }
