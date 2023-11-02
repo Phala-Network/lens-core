@@ -109,7 +109,7 @@ contract MomokaActHub is HubRestricted {
             profile: publicationActionParams.actorProfileId,
             byProfile: publicationActionParams.publicationActedProfileId
         });
-
+        // Verify oracle attestation
         Types.ActOracleResponse memory oracleResp = IOracleVerifier(oracleImpl).verifyAndStoreActResponse(oracleAttestation);
 
         // The oracle request is correct.
@@ -122,9 +122,7 @@ contract MomokaActHub is HubRestricted {
 
         address actionModuleAddress = publicationActionParams.actionModuleAddress;
         // TODO: now we don't check action module whitelist
-        //
         // uint256 actionModuleId = StorageLib.actionModuleWhitelistData()[actionModuleAddress].id;
-        //
         // if (!_isActionEnabledInMemory(oracleResp.publication, actionModuleId)) {
         //     // This will also revert for:
         //     //   - Non-existent action modules
